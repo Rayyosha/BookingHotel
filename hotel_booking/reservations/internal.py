@@ -1,19 +1,11 @@
 from __future__ import annotations
-
-from typing import Optional, Protocol
-
-from hotel_booking.domain import Reservation
-
-
-class ReservationStore(Protocol):
-    def next_id(self) -> str: ...
-    def add(self, reservation: Reservation) -> None: ...
-    def get(self, reservation_id: str) -> Optional[Reservation]: ...
-    def all(self) -> list[Reservation]: ...
-    def count(self) -> int: ...
+from typing import Optional
+from hotel_booking.reservations.domain import Reservation
 
 
 class InMemoryReservationStore:
+    """Keeps reservations in a list. P07 adds a PostgreSQL store with the same methods."""
+
     def __init__(self) -> None:
         self._reservations: list[Reservation] = []
 

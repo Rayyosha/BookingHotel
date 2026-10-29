@@ -1,9 +1,10 @@
 from datetime import date
 
-from hotel_booking.booking_service import BookingService
-from hotel_booking.domain import DateRange, Guest, Room
-from hotel_booking.notifications import EmailSender
-from hotel_booking.store import InMemoryReservationStore
+from hotel_booking.notifications.internal import EmailSender
+from hotel_booking.reservations import BookingService, DateRange, Guest
+from hotel_booking.reservations.internal import InMemoryReservationStore
+from hotel_booking.rooms import Room
+from hotel_booking.rooms.internal import InMemoryRoomCatalog
 
 
 def nov(check_in_day, check_out_day):
@@ -15,7 +16,9 @@ omar = Guest("Omar", "omar@example.com")
 r7 = Room("R7", "Standard")
 r8 = Room("R8", "Deluxe")
 
-service = BookingService([r7, r8], InMemoryReservationStore(), EmailSender())
+# The wiring: the only app code that names the internal classes of the modules.
+catalog = InMemoryRoomCatalog([r7, r8])
+service = BookingService(catalog.all(), InMemoryReservationStore(), EmailSender())
 
 print("1. Maya R7 ni 12-14 noyabrga bron qiladi:")
 print("2. ", service.reserve(maya, r7, nov(12, 14)))

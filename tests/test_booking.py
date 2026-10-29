@@ -1,9 +1,9 @@
 import unittest
 from datetime import date
 
-from hotel_booking.booking_service import BookingService
-from hotel_booking.domain import DateRange, Guest, Room
-from hotel_booking.store import InMemoryReservationStore
+from hotel_booking.reservations import BookingService, DateRange, Guest
+from hotel_booking.reservations.internal import InMemoryReservationStore
+from hotel_booking.rooms import Room
 
 MAYA = Guest("Maya", "maya@example.com")
 OMAR = Guest("Omar", "omar@example.com")
@@ -19,12 +19,12 @@ class FakeSender:
     def __init__(self) -> None:
         self.sent = []
 
-    def send_confirmation(self, reservation) -> None:
-        self.sent.append(reservation)
+    def send_confirmation(self, confirmation) -> None:
+        self.sent.append(confirmation)
 
 
 class FailingSender:
-    def send_confirmation(self, reservation) -> None:
+    def send_confirmation(self, confirmation) -> None:
         raise RuntimeError("email provider is down")
 
 
@@ -77,7 +77,7 @@ class BookingTests(unittest.TestCase):
         service, _, sender = new_service()
         service.reserve(MAYA, R7, nov(12, 14))
         self.assertEqual(1, len(sender.sent))
-        self.assertEqual("R101", sender.sent[0].id)
+        self.assertEqual("R101", sender.sent[0].reservation_id)
 
     def test_a_failed_confirmation_keeps_the_booking(self):
         service, store, _ = new_service(failing_sender=True)

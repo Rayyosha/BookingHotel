@@ -1,13 +1,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Protocol
 
-from hotel_booking.domain import (
-    DateRange, Guest, Reservation, ReservationStatus, Room,
+from hotel_booking.notifications import Confirmation, NotificationSender
+from hotel_booking.reservations.domain import (
+    DateRange, Guest, Reservation, ReservationStatus,
 )
-from hotel_booking.notifications import NotificationSender
-from hotel_booking.store import ReservationStore
+# from hotel_booking.rooms import Room
+# from hotel_booking.notifications.internal import EmailSender  # step 7: undo after the check fails
+
+
+class ReservationStore(Protocol):
+    """What BookingService needs from storage. Today a list in memory; from P07 a database."""
+
+    def next_id(self) -> str: ...
+    def add(self, reservation: Reservation) -> None: ...
+    def get(self, reservation_id: str) -> Optional[Reservation]: ...
+    def all(self) -> list[Reservation]: ...
+    def count(self) -> int: ...
 
 
 @dataclass
@@ -24,6 +35,8 @@ class BookingResult:
 
 
 class BookingService:
+    """Owns the booking rule. Uses only the public contracts of Rooms and Notifications."""
+
     def __init__(self, rooms: list[Room], store: ReservationStore,
                  sender: NotificationSender) -> None:
         self._rooms = rooms
@@ -45,7 +58,10 @@ class BookingService:
         # R6: xabar yuborilmasa ham bron saqlanib qoladi.
         notification_failed = False
         try:
-            self._sender.send_confirmation(reservation)
+            # Notifications gets its own message: the five fields it needs, not the Reservation.
+            self._sender.send_confirmation(
+                Confirmation(reservation.id, guest.email, room.number,
+                             stay.check_in, stay.check_out))
         except Exception:
             notification_failed = True
 
