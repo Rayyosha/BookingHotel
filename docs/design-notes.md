@@ -28,3 +28,5 @@ I removed the line and all checks were green again.
 - Tests: 8 passing, 3 import-linter contracts kept
 - Demo: same output as Before
 - Race: not added (demo.py has no --race)
+
+- Race: python demo.py --race still double-books (Double booking!)

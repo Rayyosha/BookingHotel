@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from typing import Optional, Protocol
 
@@ -7,8 +8,7 @@ from hotel_booking.notifications import Confirmation, NotificationSender
 from hotel_booking.reservations.domain import (
     DateRange, Guest, Reservation, ReservationStatus,
 )
-# from hotel_booking.rooms import Room
-# from hotel_booking.notifications.internal import EmailSender  # step 7: undo after the check fails
+from hotel_booking.rooms import Room
 
 
 class ReservationStore(Protocol):
@@ -38,10 +38,11 @@ class BookingService:
     """Owns the booking rule. Uses only the public contracts of Rooms and Notifications."""
 
     def __init__(self, rooms: list[Room], store: ReservationStore,
-                 sender: NotificationSender) -> None:
+                 sender: NotificationSender, slow_step_seconds: float = 0) -> None:
         self._rooms = rooms
         self._store = store
         self._sender = sender
+        self._slow_step_seconds = slow_step_seconds
 
     def reserve(self, guest: Guest, room: Room, stay: DateRange) -> BookingResult:
         if not stay.is_valid():
@@ -49,6 +50,8 @@ class BookingService:
 
         if any(r.blocks(room, stay) for r in self._store.all()):
             return BookingResult(False, reason="Unavailable")
+
+        time.sleep(self._slow_step_seconds)  # 0 normally; the race demo makes this step slow
 
         reservation = Reservation(
             self._store.next_id(), guest, room, stay, ReservationStatus.CONFIRMED
