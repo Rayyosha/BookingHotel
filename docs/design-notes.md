@@ -30,3 +30,11 @@ I removed the line and all checks were green again.
 - Race: not added (demo.py has no --race)
 
 - Race: python demo.py --race still double-books (Double booking!)
+
+# P07 design notes
+## API decisions
+- Free rooms come in text order of the room number (R10 comes before R7), and "after" compares text too.
+- Clients compare the error "title"; "detail" is a sentence for people and may change.
+- The room type is catalog data from the rooms table, not a fixed list.
+- ## Docker
+Port 5432 was taken on my Mac, so docker-compose.yml publishes PostgreSQL on 15432.

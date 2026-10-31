@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from hotel_booking.notifications import Confirmation
 
 
