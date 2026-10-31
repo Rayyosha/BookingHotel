@@ -1,3 +1,7 @@
+"""The HTTP API: three endpoints that turn HTTP requests into BookingService calls and back.
+
+It lives outside the four modules and uses only their public contracts.
+"""
 from __future__ import annotations
 
 import re
@@ -13,20 +17,23 @@ from fastapi.responses import JSONResponse, Response
 from hotel_booking.reservations import BookingResult, BookingService, DateRange, Guest
 from hotel_booking.rooms import Room
 
+# One request's work: "with unit_of_work() as service:" gives the endpoint a BookingService.
 UnitOfWork = Callable[[], AbstractContextManager[BookingService]]
 
-CONTRACT = Path("docs") / "openapi.yaml"
+CONTRACT = Path(__file__).resolve().parent.parent / "docs" / "openapi.yaml"
 FIELDS = ("guestName", "guestEmail", "room", "checkIn", "checkOut")
 BODY_DETAIL = "The body must be JSON with guestName, guestEmail, room, checkIn and checkOut."
 DATE_DETAIL = "checkIn and checkOut must be dates such as 2026-11-12."
 
 
 def problem(status: int, title: str, detail: str) -> JSONResponse:
+    """Problem details (RFC 9457): every error has the same three keys."""
     return JSONResponse({"title": title, "status": status, "detail": detail}, status,
                         media_type="application/problem+json")
 
 
 def parse_date(text: Any) -> date | None:
+    """A date written exactly like 2026-11-12, otherwise None."""
     if not isinstance(text, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", text):
         return None
     try:
@@ -36,7 +43,7 @@ def parse_date(text: Any) -> date | None:
 
 
 def to_http(result: BookingResult) -> JSONResponse:
-    # Sizning BookingResult: accepted (bool), reason (rad etilsa sabab matni).
+    """Turns a booking answer into an HTTP status code and a JSON body (L04)."""
     if result.accepted:
         return JSONResponse({"id": result.reservation_id, "status": "Confirmed",
                              "notificationFailed": result.notification_failed}, 201)
@@ -46,6 +53,7 @@ def to_http(result: BookingResult) -> JSONResponse:
 
 
 def create_app(rooms: list[Room], unit_of_work: UnitOfWork) -> FastAPI:
+    # docs/openapi.yaml is the contract, so FastAPI must not publish one of its own.
     app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
 
     @app.exception_handler(RequestValidationError)
@@ -54,8 +62,7 @@ def create_app(rooms: list[Room], unit_of_work: UnitOfWork) -> FastAPI:
 
     @app.get("/openapi.yaml")
     def contract() -> Response:
-        path = CONTRACT if CONTRACT.exists() else Path(__file__).resolve().parent.parent / "docs" / "openapi.yaml"
-        return Response(path.read_text(encoding="utf-8"), media_type="application/yaml")
+        return Response(CONTRACT.read_text(encoding="utf-8"), media_type="application/yaml")
 
     @app.get("/rooms/availability")
     def find_free_rooms(checkIn: str = "", checkOut: str = "", limit: str = "20", after: str = "") -> JSONResponse:
@@ -70,6 +77,7 @@ def create_app(rooms: list[Room], unit_of_work: UnitOfWork) -> FastAPI:
 
         with unit_of_work() as service:
             free = service.find_free_rooms(stay)
+        # Cursor pagination (L04): the rooms after the last one the client has seen, in text order.
         rest = sorted((room for room in free if room.number > after), key=lambda room: room.number)
         page = rest[:int(limit)]
         return JSONResponse({
@@ -80,12 +88,12 @@ def create_app(rooms: list[Room], unit_of_work: UnitOfWork) -> FastAPI:
 
     @app.post("/reservations")
     def reserve(body: Any = Body(None)) -> JSONResponse:
-        if not isinstance(body, dict) or not all(isinstance(body.get(field), str) and body[field] for field in FIELDS):
+        if not isinstance(body, dict) or not all(isinstance(body.get(f), str) and body[f] for f in FIELDS):
             return problem(400, "InvalidRequest", BODY_DETAIL)
         check_in, check_out = parse_date(body["checkIn"]), parse_date(body["checkOut"])
         if check_in is None or check_out is None:
             return problem(400, "InvalidDates", DATE_DETAIL)
-        room = next((room for room in rooms if room.number == body["room"]), None)
+        room = next((r for r in rooms if r.number == body["room"]), None)
         if room is None:
             return problem(400, "UnknownRoom", f"There is no room {body['room']}.")
 

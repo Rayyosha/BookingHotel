@@ -38,3 +38,9 @@ I removed the line and all checks were green again.
 - The room type is catalog data from the rooms table, not a fixed list.
 - ## Docker
 Port 5432 was taken on my Mac, so docker-compose.yml publishes PostgreSQL on 15432.
+
+## API tests
+- Search: GET /rooms/availability -> 200 with R7 and R8
+- Book twice: POST Maya -> 201 R101, POST Omar -> 409 Unavailable
+- Wrong dates: POST with checkOut = checkIn -> 400 InvalidDates (problem+json)
+- Cancel twice: DELETE R101 -> 204, then 404 NotFound

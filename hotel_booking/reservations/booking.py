@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import time
 from dataclasses import dataclass
 from typing import Optional, Protocol
@@ -71,7 +72,6 @@ class BookingService:
 
     def cancel(self, reservation_id: str) -> bool:
         reservation = self._store.get(reservation_id)
-        # Topilmasa yoki allaqachon bekor qilingan bo'lsa: False (API 404 NotFound qaytaradi).
         if reservation is None or reservation.status == ReservationStatus.CANCELLED:
             return False
         reservation.status = ReservationStatus.CANCELLED
