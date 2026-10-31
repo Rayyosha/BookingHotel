@@ -71,7 +71,8 @@ class BookingService:
 
     def cancel(self, reservation_id: str) -> bool:
         reservation = self._store.get(reservation_id)
-        if reservation is None:
+        # Topilmasa yoki allaqachon bekor qilingan bo'lsa: False (API 404 NotFound qaytaradi).
+        if reservation is None or reservation.status == ReservationStatus.CANCELLED:
             return False
         reservation.status = ReservationStatus.CANCELLED
         return True
