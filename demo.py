@@ -63,4 +63,4 @@ def run_race():
 
 
 if __name__ == "__main__":
-    run_race() if "--race" in sys.argv else run_demo()
+    run_race() if "--race" in sys.argv else run_race()
