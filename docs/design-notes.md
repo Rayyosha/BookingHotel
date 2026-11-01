@@ -44,3 +44,9 @@ Port 5432 was taken on my Mac, so docker-compose.yml publishes PostgreSQL on 154
 - Book twice: POST Maya -> 201 R101, POST Omar -> 409 Unavailable
 - Wrong dates: POST with checkOut = checkIn -> 400 InvalidDates (problem+json)
 - Cancel twice: DELETE R101 -> 204, then 404 NotFound
+
+
+## After
+- Checks: 12 tests green (8 booking + 4 API), 3 import-linter contracts kept
+- Seven API answers match the contract (docs/api-check.md)
+- Restart check: the booking survives a restart, it lives in PostgreSQL
