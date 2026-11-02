@@ -26,3 +26,6 @@ Check: Maya R101 ni bekor qiladi → R7 12–14 uchun yana bo'sh.
 ## R5 · View
 Bronni uning raqami bo'yicha topish mumkin.
 Check: R101 → Maya, R7, 12–14 noyabr, Confirmed.
+
+## R6 · Failed message
+If the confirmation cannot be sent, the booking stays saved and Accepted, and the failure is reported.

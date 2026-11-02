@@ -6,6 +6,29 @@ Low-level design kod yozishdan oldin qaysi sinflar (masalan, Guest, Room,
 Reservation) bo'lishini, har bir sinf qanday ma'lumot saqlashini va qanday
 metodlarga ega bo'lishini, hamda qaysi sinf qaysi sinfni chaqirishini hal qiladi.
 
+# P04 design notes
+
+## Refactoring
+Refactoring changes how the code is organised, but not what the app does for the guest.
+
+Must stay the same:
+- The tests: all of them still pass after every move.
+- The demo output: the same lines as in P03.
+- The race demo: still shows "Double booking!" (refactoring does not fix bugs).
+
+## What our code breaks
+- BookingService asked for exactly ReservationStore (D: dependency inversion).
+  In P07 we would have to edit BookingService just to use a database.
+- BookingService asked for exactly EmailSender (D and O). Adding SMS would mean
+  editing BookingService.
+
+## Proof
+- Tests: 8 passing
+- Demo: same output as before the refactoring
+- Race: still double-books (fixed later, in P09)
+
+
+
 
 # P06 design notes
 
