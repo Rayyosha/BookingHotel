@@ -1,4 +1,4 @@
-"""To'rtta API test: HTTP kirish, HTTP chiqish, bronlar xotiradagi ro'yxatda.
+"""Oltita API test: HTTP kirish, HTTP chiqish, bronlar xotiradagi ro'yxatda.
 
 Ishga tushirish (loyiha papkasidan):  python -m unittest -v
 """
@@ -7,7 +7,8 @@ from contextlib import contextmanager
 
 from fastapi.testclient import TestClient
 
-from hotel_booking.api import create_app
+from hotel_booking.api import CountingReservationStore, Stats, create_app
+from hotel_booking.api_cache import AvailabilityCache
 from hotel_booking.notifications.internal import EmailSender
 from hotel_booking.reservations import BookingService
 from hotel_booking.reservations.internal import InMemoryReservationStore
@@ -20,15 +21,37 @@ MAYA = {"guestName": "Maya", "guestEmail": "maya@example.com", "room": "R7", "ch
 OMAR = {"guestName": "Omar", "guestEmail": "omar@example.com", "room": "R7", "checkIn": "2026-11-13", "checkOut": "2026-11-15"}
 
 
+BOTH_FREE = ('{"checkIn":"2026-11-12","checkOut":"2026-11-14","rooms":[{"number":"R7","type":"Standard"},'
+             '{"number":"R8","type":"Deluxe"}],"next":null}')
+ONLY_R8 = '{"checkIn":"2026-11-12","checkOut":"2026-11-14","rooms":[{"number":"R8","type":"Deluxe"}],"next":null}'
+
+
+class InMemoryKeyValueStore:
+    """Redis's three commands on a dictionary. The tests run in a second, so the 30 s TTL never ends."""
+
+    def __init__(self) -> None:
+        self._values: dict[str, str] = {}
+
+    def get(self, key: str) -> str | None:
+        return self._values.get(key)
+
+    def set(self, key: str, value: str, ttl_seconds: int) -> None:
+        self._values[key] = value
+
+    def increment(self, key: str) -> None:
+        self._values[key] = str(int(self._values.get(key, "0")) + 1)
+
+
 def new_client() -> TestClient:
-    """Xotiradagi store bilan web ilova; TestClient so'rovlarni tarmoqsiz yuboradi."""
-    service = BookingService([R7, R8], InMemoryReservationStore(), EmailSender())
+    """Xotiradagi store va kesh bilan web ilova; TestClient so'rovlarni tarmoqsiz yuboradi."""
+    stats = Stats()
+    service = BookingService([R7, R8], CountingReservationStore(InMemoryReservationStore(), stats), EmailSender())
 
     @contextmanager
     def unit_of_work():
         yield service  # xotiradagi ro'yxatni so'rov oxirida saqlash shart emas
 
-    return TestClient(create_app([R7, R8], unit_of_work))
+    return TestClient(create_app([R7, R8], unit_of_work, stats, AvailabilityCache(InMemoryKeyValueStore())))
 
 
 class ApiTests(unittest.TestCase):
@@ -60,6 +83,21 @@ class ApiTests(unittest.TestCase):
         second = client.delete("/reservations/R101")
         self.assertEqual(404, second.status_code)
         self.assertEqual("NotFound", second.json()["title"])
+
+    def test_the_second_search_is_answered_by_the_cache(self):
+        client = new_client()
+        first = client.get(SEARCH)
+        second = client.get(SEARCH)
+        self.assertEqual(first.text, second.text)
+        self.assertEqual('{"searches":2,"databaseQueries":2,"cacheHits":1,"cacheMisses":1}', client.get("/stats").text)
+
+    def test_a_booking_and_a_cancel_make_the_next_search_fresh(self):
+        client = new_client()
+        self.assertEqual(BOTH_FREE, client.get(SEARCH).text)
+        self.assertEqual(201, client.post("/reservations", json=MAYA).status_code)
+        self.assertEqual(ONLY_R8, client.get(SEARCH).text)
+        self.assertEqual(204, client.delete("/reservations/R101").status_code)
+        self.assertEqual(BOTH_FREE, client.get(SEARCH).text)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Hotel booking API
-  version: 1.0.0
+  version: 1.1.0
   description: Search free rooms, book a room and cancel a reservation.
 servers:
   - url: http://localhost:5080
@@ -45,6 +45,18 @@ paths:
         "400":
           $ref: "#/components/responses/Problem"
           description: InvalidDates when a date is missing, is not a date such as 2026-11-12, or checkOut is not after checkIn; InvalidRequest when limit is not a whole number from 1 to 100.
+  /stats:
+    get:
+      operationId: getStats
+      summary: What the searches cost since the app started
+      description: Four counters for measuring the search. They start at 0 when the app starts and count this running app only (each instance has its own). databaseQueries counts every question the reservation store sends to PostgreSQL.
+      responses:
+        "200":
+          description: The four counters.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Stats" }
+              example: { searches: 1000, databaseQueries: 2000, cacheHits: 0, cacheMisses: 0 }
   /reservations:
     post:
       operationId: reserve
@@ -105,6 +117,14 @@ components:
         next:
           type: [string, "null"]
           description: Pass it as "after" to get the next page; null on the last page.
+    Stats:
+      type: object
+      required: [searches, databaseQueries, cacheHits, cacheMisses]
+      properties:
+        searches: { type: integer, minimum: 0, description: Answers of GET /rooms/availability that reached the search. }
+        databaseQueries: { type: integer, minimum: 0, description: Questions the reservation store sent to PostgreSQL. }
+        cacheHits: { type: integer, minimum: 0, description: Searches answered from a copy in Redis. }
+        cacheMisses: { type: integer, minimum: 0, description: Searches that found no copy and asked PostgreSQL. }
     ReservationRequest:
       type: object
       required: [guestName, guestEmail, room, checkIn, checkOut]

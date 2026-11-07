@@ -73,3 +73,18 @@ Port 5432 was taken on my Mac, so docker-compose.yml publishes PostgreSQL on 154
 - Checks: 12 tests green (8 booking + 4 API), 3 import-linter contracts kept
 - Seven API answers match the contract (docs/api-check.md)
 - Restart check: the booking survives a restart, it lives in PostgreSQL
+
+# P08 design notes
+
+## Cache rule
+Booking never reads the cache: BookingService always asks PostgreSQL.
+
+## Cache decisions
+- Key availability:v{version}:{checkIn}:{checkOut}, TTL 30 s, only the free-room search is cached.
+- A successful POST (201) and DELETE (204) raise availability:version, after the unit of work has saved.
+- Redis port 6379 (HOTEL_REDIS_PORT if taken); PostgreSQL stays on 15432.
+
+## After
+- Checks: 14 tests green (8 booking + 6 API), 3 import-linter contracts kept
+- Measurements: no cache vs cache-aside (see docs/cache-experiment.md)
+- Stale result: seen without invalidation, fixed with the version number

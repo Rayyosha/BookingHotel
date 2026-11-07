@@ -23,3 +23,6 @@ These are estimates from assumptions, not measurements. P08 measures the real ap
 ## To measure later
 - p95 of 1,000 searches for 12–14 Nov, target ≤ 1 s (S1): P08.
 - Database queries per search (GET /stats): P08.
+## To measure later
+- p95 of 1,000 searches for 12–14 Nov, target ≤ 1 s (S1): measured in P08 (docs/cache-experiment.md).
+- Database queries per search (GET /stats): 2 with two rooms, measured in P08.

@@ -4,3 +4,10 @@ sqlalchemy
 psycopg[binary]
 httpx
 import-linter
+fastapi
+uvicorn
+sqlalchemy
+psycopg[binary]
+httpx
+redis
+import-linter
